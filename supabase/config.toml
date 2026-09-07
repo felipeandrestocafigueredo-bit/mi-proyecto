@@ -1,0 +1,67 @@
+# =============================================================================
+# Supabase CLI Configuration
+# =============================================================================
+# Generado desde: audit-integracion-supabase.md
+# Proyecto: lbrqyadurqixmfjyutxu
+# URL: https://lbrqyadurqixmfjyutxu.supabase.co
+# Framework: Next.js 16 (App Router) + @supabase/ssr
+# =============================================================================
+
+# Project reference — debe coincidir con el proyecto en el Dashboard.
+# Puedes encontrarlo en: Supabase Dashboard > Settings > General > Project Reference
+project_id = "lbrqyadurqixmfjyutxu"
+
+[db]
+# Puerto local para el contenedor Postgres de desarrollo.
+port = 5432
+# Esquema principal de la aplicación.
+# El proyecto usa: public, auth, storage, realtime
+# Supabase crea auth/storage/realtime automáticamente; nosotros gestionamos public.
+major_version = 15
+
+[db.local]
+# Puerto del contenedor Docker local de Postgres.
+port = 5432
+
+[functions]
+# Directorio de Edge Functions (vacío por ahora; no hay funciones en el proyecto).
+dir = "supabase/functions"
+
+[studio]
+port = 54320
+
+# -----------------------------------------------------------------------------
+# Migrations — Supabase CLI lee automáticamente supabase/migrations/
+# -----------------------------------------------------------------------------
+# Las migraciones están versionadas y se aplican en orden alfabético.
+# Cada archivo debe comenzar con un timestamp de 14 dígitos (YYYYMMDDHHMMSS).
+#
+# Migraciones incluidas:
+#   001_init_schema.sql          — Creación de tablas lessons + profiles
+#   002_rls_policies.sql         — Habilitar RLS y policies
+#   003_insert_missing_lessons.sql — 5 lecciones faltantes (PASO 1)
+#   004_fix_week_index.sql       — Corrección week_index (PASO 2)
+#   005_selective_content_updates.sql — Updates selectivos (PASO 3)
+#   006_storage_bucket_setup.sql — Bucket academic-files + storage policies
+#   007_create_profile_trigger.sql — Trigger auto-crea profiles en signup
+# -----------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
+# VS Code Integration (SQLTools / Supabase extension)
+# -----------------------------------------------------------------------------
+# El conector recomendado para VS Code es la extensión oficial "Supabase":
+#   https://marketplace.visualstudio.com/items?itemName=supabase.supabase
+#
+# Alternativa: SQLTools + driver PostgreSQL
+#   - Host: db.lbrqyadurqixmfjyutxu.supabase.co
+#   - Port: 5432
+#   - Database: postgres
+#   - User: (usuario Postgres, no la anon key)
+#   - Password: (generado desde Dashboard > Settings > Database > Connection string)
+#   - SSL: Required
+#
+# Para introspección de tipos en VS Code:
+#   - Marcar schemas: public, auth, storage
+#   - No marcar: realtime (causa errores de introspección)
+#   - Habilitar "jsonb" como vista árbol en SQLTools
+# -----------------------------------------------------------------------------

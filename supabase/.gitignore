@@ -1,0 +1,2 @@
+# No ignorar las migraciones locales
+!.gitignore
