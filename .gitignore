@@ -41,4 +41,15 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-.vercel
+# audit/diagnostic files (contain secrets and local analysis)
+audit-*.md
+alignment-*.md
+alignment-*.sql
+analyze-*.js
+check_page.js
+count-lessons.js
+fetch-and-analyze.js
+session-summary.md
+supabase-*.json
+test-rls-upload.mjs
+verify-lessons.js
