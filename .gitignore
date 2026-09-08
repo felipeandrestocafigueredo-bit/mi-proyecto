@@ -53,3 +53,5 @@ session-summary.md
 supabase-*.json
 test-rls-upload.mjs
 verify-lessons.js
+
+.env*
