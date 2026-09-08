@@ -276,12 +276,10 @@ export async function updateLessonSlides(
   const content = (existingData.content ?? {}) as Record<string, unknown>;
 
   const updatePayload: Record<string, unknown> = {};
-  if (slides && slides.length > 0) {
-    updatePayload.content = {
-      ...content,
-      slides,
-    };
-  }
+  updatePayload.content = {
+    ...content,
+    slides,
+  };
 
   const { data, error } = await supabase
     .from("lessons")

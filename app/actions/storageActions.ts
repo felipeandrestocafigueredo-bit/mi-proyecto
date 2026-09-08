@@ -1,8 +1,6 @@
 'use server'
 
 import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
-import { createClient as createServerClient } from '@/app/lib/supabase/server'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -47,12 +45,7 @@ export async function uploadAndPersistFile(
     hasUrl: Boolean(supabaseUrl),
     hasServiceRole: Boolean(supabaseServiceRoleKey),
   });
-  const authClient = createServerClient(await cookies())
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) {
-    console.warn('[uploadAndPersistFile] no authenticated user');
-    return { data: null, error: 'Debes iniciar sesión para guardar archivos.' };
-  }
+
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.error('[uploadAndPersistFile] missing env', { hasUrl: Boolean(supabaseUrl), hasServiceRole: Boolean(supabaseServiceRoleKey) });
     return { data: null, error: 'Falta la configuración segura de Supabase.' };
@@ -60,9 +53,6 @@ export async function uploadAndPersistFile(
 
   const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey)
 
-  // Resolver lesson_id en el servidor usando service_role. Esto evita que
-  // el cliente tenga que hacer una petición REST a Supabase (que puede
-  // fallar por DNS/red del usuario). Si lessonId viene vacío, lo buscamos aquí.
   let resolvedLessonId = (lessonId ?? '').trim();
   if (!resolvedLessonId) {
     const { data: lessonRow, error: lookupError } = await adminClient
@@ -131,9 +121,6 @@ export async function persistFileInLesson(
   folder: 'worksheets' | 'slides' | 'resources',
   file: { name: string; path: string; url: string; type: string }
 ): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
-  const authClient = createServerClient(await cookies())
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) return { data: null, error: 'Debes iniciar sesión para guardar archivos.' }
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return { data: null, error: 'Falta la configuración segura de Supabase.' }
   }
@@ -178,11 +165,6 @@ export async function addLinkToLesson(
   item: { title?: string; url: string; desc?: string; description?: string }
 ): Promise<{ data: Record<string, unknown> | null; error: string | null; lessonId?: string }> {
   console.log('[addLinkToLesson] start', { lessonId, gradeCode, monthIndex, weekIndex, folder, item });
-  const authClient = createServerClient(await cookies())
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) {
-    return { data: null, error: 'Debes iniciar sesión para guardar enlaces.' };
-  }
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return { data: null, error: 'Falta la configuración segura de Supabase.' };
   }
@@ -235,11 +217,6 @@ export async function removeItemFromLesson(
   folder: 'worksheets' | 'slides' | 'resources',
   predicate: { url?: string; path?: string; title?: string }
 ): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
-  const authClient = createServerClient(await cookies())
-  const { data: { user } } = await authClient.auth.getUser()
-  if (!user) {
-    return { data: null, error: 'Debes iniciar sesión para modificar la lección.' };
-  }
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return { data: null, error: 'Falta la configuración segura de Supabase.' };
   }

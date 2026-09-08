@@ -1024,6 +1024,7 @@ export default function TeacherControl({ onClose, colors, role, currentLesson, o
               <input
                 type="file"
                 onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                disabled={uploading}
                 style={{ fontSize: 13 }}
               />
               <Button
@@ -1033,9 +1034,21 @@ export default function TeacherControl({ onClose, colors, role, currentLesson, o
               >
                 {uploading ? "Guardando..." : editingFile ? "Reemplazar" : "Subir archivo"}
               </Button>
+              {uploading && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "#475569",
+                    fontWeight: 700,
+                  }}
+                >
+                  Subiendo archivo, por favor espera...
+                </div>
+              )}
               {editingFile && (
                 <Button
                   type="ghost"
+                  disabled={uploading}
                   onClick={() => {
                     setEditingFile(null);
                     setFile(null);
@@ -1050,8 +1063,13 @@ export default function TeacherControl({ onClose, colors, role, currentLesson, o
             {message && (
               <div
                 style={{
+                  padding: 10,
+                  borderRadius: 12,
                   fontSize: 13,
+                  fontWeight: 700,
+                  background: message.includes("correctamente") ? "#DCFCE7" : "#FEE2E2",
                   color: message.includes("correctamente") ? "#166534" : "#991B1B",
+                  border: "1px solid " + (message.includes("correctamente") ? "#86EFAC" : "#FECACA"),
                 }}
               >
                 {message}
