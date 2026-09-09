@@ -1,6 +1,6 @@
 import { createClient } from "@/app/lib/supabase/client";
 import type { Lesson } from "@/app/models/LessonModel";
-import { persistFileInLesson } from "@/app/actions/storageActions";
+import { persistFileInLesson, uploadFileOnly, deleteFileOnly, removeItemFromLesson } from "@/app/actions/storageActions";
 
 const STORAGE_BUCKET = "academic-files";
 
@@ -8,18 +8,6 @@ export type StorageFolder = "worksheets" | "slides" | "resources";
 
 function sanitizeName(name: string): string {
   return name.trim().replace(/\s+/g, "-").replace(/[^a-zA-Z0-9._-]/g, "");
-}
-
-function getStoragePath(
-  gradeCode: string,
-  monthIndex: number,
-  weekIndex: number,
-  folder: StorageFolder,
-  fileName: string
-): string {
-  const safeGrade = sanitizeName(gradeCode);
-  const safeFile = sanitizeName(fileName);
-  return `${safeGrade}/month-${monthIndex}/week-${weekIndex}/${folder}/${safeFile}`;
 }
 
 function getStoragePrefix(
@@ -43,23 +31,16 @@ export async function uploadFile({
   monthIndex: number;
   weekIndex: number;
   folder: StorageFolder;
-}): Promise<{ path: string; error: string | null }> {
-  const supabase = createClient();
-
-  const safeOriginalName = sanitizeName(file.name);
-  const fileName = `${Date.now()}-${safeOriginalName}`;
-  const path = getStoragePath(gradeCode, monthIndex, weekIndex, folder, fileName);
-
-  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, {
-    cacheControl: "3600",
-    upsert: true,
+}): Promise<{ path: string; url: string | null; error: string | null }> {
+  const { path, url, error } = await uploadFileOnly({
+    file,
+    gradeCode,
+    monthIndex,
+    weekIndex,
+    folder,
   });
 
-  if (error) {
-    return { path: "", error: error.message };
-  }
-
-  return { path, error: null };
+  return { path, url, error };
 }
 
 export async function getPublicUrl(path: string): Promise<string | null> {
@@ -71,7 +52,7 @@ export async function getPublicUrl(path: string): Promise<string | null> {
 
 export async function getSignedUrl(path: string, expiresIn = 3600): Promise<string | null> {
   const supabase = createClient();
-  const { data, error } = await supabase.storage.from(STORAGE_BUCKET).createSignedUrl(path, expiresIn);
+  const { data, error } = supabase.storage.from(STORAGE_BUCKET).createSignedUrl(path, expiresIn);
 
   if (error) {
     console.error("Error creating signed URL:", error);
@@ -82,15 +63,7 @@ export async function getSignedUrl(path: string, expiresIn = 3600): Promise<stri
 }
 
 export async function deleteFile(path: string): Promise<boolean> {
-  const supabase = createClient();
-  const { error } = await supabase.storage.from(STORAGE_BUCKET).remove([path]);
-
-  if (error) {
-    console.error("Error deleting file:", error);
-    return false;
-  }
-
-  return true;
+  return deleteFileOnly(path);
 }
 
 export async function listFiles(
@@ -131,7 +104,7 @@ export async function uploadWorksheet({
   monthIndex: number;
   weekIndex: number;
 }): Promise<{ path: string; url: string | null; error: string | null }> {
-  const { path, error } = await uploadFile({
+  const { path, url, error } = await uploadFile({
     file,
     gradeCode,
     monthIndex,
@@ -142,8 +115,6 @@ export async function uploadWorksheet({
   if (error || !path) {
     return { path: "", url: null, error: error ?? "upload failed" };
   }
-
-  const url = await getPublicUrl(path);
 
   return { path, url, error: null };
 }
@@ -159,7 +130,7 @@ export async function uploadSlide({
   monthIndex: number;
   weekIndex: number;
 }): Promise<{ path: string; url: string | null; error: string | null }> {
-  const { path, error } = await uploadFile({
+  const { path, url, error } = await uploadFile({
     file,
     gradeCode,
     monthIndex,
@@ -170,8 +141,6 @@ export async function uploadSlide({
   if (error || !path) {
     return { path: "", url: null, error: error ?? "upload failed" };
   }
-
-  const url = await getPublicUrl(path);
 
   return { path, url, error: null };
 }
@@ -187,7 +156,7 @@ export async function uploadResource({
   monthIndex: number;
   weekIndex: number;
 }): Promise<{ path: string; url: string | null; error: string | null }> {
-  const { path, error } = await uploadFile({
+  const { path, url, error } = await uploadFile({
     file,
     gradeCode,
     monthIndex,
@@ -198,8 +167,6 @@ export async function uploadResource({
   if (error || !path) {
     return { path: "", url: null, error: error ?? "upload failed" };
   }
-
-  const url = await getPublicUrl(path);
 
   return { path, url, error: null };
 }
@@ -427,38 +394,7 @@ export async function removeFileFromLessonContent(
   folder: StorageFolder,
   filePath: string
 ): Promise<Lesson | null> {
-  const supabase = createClient();
-
-  const { data: existingData, error: fetchError } = await supabase
-    .from("lessons")
-    .select("content")
-    .eq("lesson_id", lessonId)
-    .single();
-
-  if (fetchError || !existingData) {
-    console.error("Error fetching lesson:", fetchError);
-    return null;
-  }
-
-  const content = (existingData.content ?? {}) as Record<string, unknown>;
-  const folderKey = folder === "worksheets" ? "worksheets" : folder === "slides" ? "slides" : "resources";
-
-  const existingItems = Array.isArray(content[folderKey]) ? content[folderKey] as Array<Record<string, unknown>> : [];
-
-  const filteredItems = existingItems.filter((item) => item.path !== filePath && item.url !== filePath);
-
-  const { data, error } = await supabase
-    .from("lessons")
-    .update({
-      content: {
-        ...content,
-        [folderKey]: filteredItems,
-      },
-    })
-    .eq("lesson_id", lessonId)
-    .select()
-    .single();
-
+  const { data, error } = await removeItemFromLesson(lessonId, folder, { path: filePath });
   if (error || !data) {
     console.error("Error updating lesson content:", error);
     return null;

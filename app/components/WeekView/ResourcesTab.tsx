@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Card from "../common/Card";
 import EmptyState from "../common/EmptyState";
-import { listFilesByWeek, uploadResource, getPublicUrl, addFileToLessonContent, findLessonByWeek, getFileType, type StoredFile } from "../../services/storageService";
+import { listFilesByWeek, type StoredFile } from "../../services/storageService";
 import { useAccessControl } from "@/app/providers/AccessControlProvider";
 import { uploadAndPersistFile, addLinkToLesson, removeItemFromLesson } from "@/app/actions/storageActions";
 import { normalizeLesson } from "../../models/LessonModel";

@@ -250,6 +250,62 @@ export async function removeItemFromLesson(
   return { data: data as unknown as Record<string, unknown>, error: null }
 }
 
+export async function uploadFileOnly({
+  file,
+  gradeCode,
+  monthIndex,
+  weekIndex,
+  folder,
+}: {
+  file: File;
+  gradeCode: string;
+  monthIndex: number;
+  weekIndex: number;
+  folder: 'worksheets' | 'slides' | 'resources';
+}): Promise<{ path: string; url: string | null; error: string | null }> {
+  console.log('[uploadFileOnly] start', { gradeCode, monthIndex, weekIndex, folder, fileName: file?.name, fileSize: file?.size });
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return { path: '', url: null, error: 'Falta la configuración segura de Supabase.' };
+  }
+
+  const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey)
+
+  const fileName = `${Date.now()}-${sanitizeName(file.name)}`
+  const path = `${sanitizeName(gradeCode)}/month-${monthIndex}/week-${weekIndex}/${folder}/${fileName}`
+  const fileBuffer = Buffer.from(await file.arrayBuffer())
+  const { error: uploadError } = await adminClient.storage
+    .from(STORAGE_BUCKET)
+    .upload(path, fileBuffer, {
+      contentType: file.type || getFileType(file.name),
+      cacheControl: '3600',
+      upsert: false,
+    })
+  if (uploadError) {
+    console.error('[uploadFileOnly] storage upload error', { path, error: uploadError.message });
+    return { path: '', url: null, error: uploadError.message };
+  }
+
+  const { data: urlData } = adminClient.storage.from(STORAGE_BUCKET).getPublicUrl(path)
+  return { path, url: urlData.publicUrl, error: null }
+}
+
+export async function deleteFileOnly(path: string): Promise<boolean> {
+  console.log('[deleteFileOnly] start', { path });
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return false;
+  }
+
+  const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey)
+  const { error } = await adminClient.storage.from(STORAGE_BUCKET).remove([path])
+  if (error) {
+    console.error('[deleteFileOnly] storage remove error', { path, error: error.message });
+    return false;
+  }
+  return true
+}
+
 export async function ensureStorageBucketExists(): Promise<boolean> {
   console.log('ensureStorageBucketExists:start', {
     hasUrl: Boolean(supabaseUrl),

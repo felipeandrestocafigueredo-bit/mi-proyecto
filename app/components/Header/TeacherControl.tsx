@@ -9,7 +9,7 @@ import academic from "@/app/academic/Index";
 import MONTHS from "@/app/data/months";
 import { summarizeLessonProgress } from "@/app/utils/lessonProgress";
 import type { Lesson } from "@/app/models/LessonModel";
-import { uploadWorksheet, uploadSlide, uploadResource, getPublicUrl, listFilesByWeek, addFileToLessonContent, removeFileFromLessonContent, deleteFile, findLessonByWeek, type StoredFile } from "@/app/services/storageService";
+import { listFilesByWeek, removeFileFromLessonContent, deleteFile, findLessonByWeek, type StoredFile } from "@/app/services/storageService";
 import { useAccessControl } from "@/app/providers/AccessControlProvider";
 import { createClient } from "@/app/lib/supabase/client";
 import { uploadAndPersistFile } from "@/app/actions/storageActions";
