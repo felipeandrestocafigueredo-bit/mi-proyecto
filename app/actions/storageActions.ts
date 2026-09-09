@@ -121,6 +121,7 @@ export async function persistFileInLesson(
   folder: 'worksheets' | 'slides' | 'resources',
   file: { name: string; path: string; url: string; type: string }
 ): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
+  console.log('[persistFileInLesson] start', { lessonId, folder, fileName: file.name, fileUrl: file.url, filePath: file.path })
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return { data: null, error: 'Falta la configuración segura de Supabase.' }
   }
@@ -132,11 +133,13 @@ export async function persistFileInLesson(
     .eq('lesson_id', lessonId)
     .single()
   if (readError || !existing) {
+    console.error('[persistFileInLesson] read error', { lessonId, error: readError?.message })
     return { data: null, error: readError?.message ?? 'No se encontró la lección.' }
   }
 
   const content = (existing.content ?? {}) as Record<string, unknown>
   const items = Array.isArray(content[folder]) ? content[folder] as Array<Record<string, unknown>> : []
+  console.log('[persistFileInLesson] existing items', { lessonId, folder, count: items.length })
   const item = {
     title: file.name,
     url: file.url,
@@ -150,9 +153,11 @@ export async function persistFileInLesson(
     p_item: item,
   } as never)
   if (error || !data || (Array.isArray(data) && data.length === 0)) {
+    console.error('[persistFileInLesson] rpc error', { lessonId, folder, error: error?.message })
     return { data: null, error: error?.message ?? 'No se pudo guardar el archivo.' }
   }
   const returnedRow = Array.isArray(data) ? data[0] : data
+  console.log('[persistFileInLesson] ok', { lessonId, folder })
   return { data: returnedRow as unknown as Record<string, unknown>, error: null }
 }
 
@@ -164,7 +169,7 @@ export async function addLinkToLesson(
   folder: 'worksheets' | 'slides' | 'resources',
   item: { title?: string; url: string; desc?: string; description?: string }
 ): Promise<{ data: Record<string, unknown> | null; error: string | null; lessonId?: string }> {
-  console.log('[addLinkToLesson] start', { lessonId, gradeCode, monthIndex, weekIndex, folder, item });
+  console.log('[addLinkToLesson] start', { lessonId, gradeCode, monthIndex, weekIndex, folder, item })
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return { data: null, error: 'Falta la configuración segura de Supabase.' };
   }
@@ -181,12 +186,14 @@ export async function addLinkToLesson(
       .eq('week_index', weekIndex)
       .maybeSingle();
     if (lookupError) {
+      console.error('[addLinkToLesson] lesson lookup error', { lookupError: lookupError.message })
       return { data: null, error: `No se pudo buscar la lección: ${lookupError.message}` };
     }
     if (!lessonRow?.lesson_id) {
       return { data: null, error: `No existe la lección ${gradeCode} mes ${monthIndex} semana ${weekIndex}.` };
     }
     resolvedLessonId = lessonRow.lesson_id;
+    console.log('[addLinkToLesson] lesson_id resolved server-side', { resolvedLessonId })
   }
 
   const payload = {
@@ -198,6 +205,7 @@ export async function addLinkToLesson(
     type: 'link',
   };
 
+  console.log('[addLinkToLesson] rpc attempt', { lessonId: resolvedLessonId, folder, payload })
   const { data, error } = await adminClient.rpc('append_lesson_content_item' as never, {
     p_lesson_id: resolvedLessonId,
     p_folder: folder,
@@ -205,10 +213,11 @@ export async function addLinkToLesson(
   } as never)
 
   if (error || !data || (Array.isArray(data) && data.length === 0)) {
-    console.error('[addLinkToLesson] rpc error', { error: error?.message });
+    console.error('[addLinkToLesson] rpc error', { lessonId: resolvedLessonId, folder, error: error?.message })
     return { data: null, error: error?.message ?? 'No se pudo guardar el enlace.' };
   }
   const returnedRow = Array.isArray(data) ? data[0] : data
+  console.log('[addLinkToLesson] ok', { lessonId: resolvedLessonId, folder })
   return { data: returnedRow as unknown as Record<string, unknown>, error: null, lessonId: resolvedLessonId }
 }
 
@@ -217,6 +226,7 @@ export async function removeItemFromLesson(
   folder: 'worksheets' | 'slides' | 'resources',
   predicate: { url?: string; path?: string; title?: string }
 ): Promise<{ data: Record<string, unknown> | null; error: string | null }> {
+  console.log('[removeItemFromLesson] start', { lessonId, folder, predicate })
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     return { data: null, error: 'Falta la configuración segura de Supabase.' };
   }
@@ -228,10 +238,12 @@ export async function removeItemFromLesson(
     .eq('lesson_id', lessonId)
     .single()
   if (readError || !existing) {
+    console.error('[removeItemFromLesson] read error', { lessonId, folder, error: readError?.message })
     return { data: null, error: readError?.message ?? 'No se encontró la lección.' };
   }
   const content = (existing.content ?? {}) as Record<string, unknown>
   const list = Array.isArray(content[folder]) ? content[folder] as Array<Record<string, unknown>> : []
+  console.log('[removeItemFromLesson] existing items', { lessonId, folder, count: list.length })
   const filtered = list.filter((it) => {
     if (predicate.url && String(it.url ?? '') === predicate.url) return false;
     if (predicate.path && String(it.path ?? '') === predicate.path) return false;
@@ -245,8 +257,10 @@ export async function removeItemFromLesson(
     .select()
     .single()
   if (error || !data) {
+    console.error('[removeItemFromLesson] update error', { lessonId, folder, error: error?.message })
     return { data: null, error: error?.message ?? 'No se pudo eliminar el elemento.' };
   }
+  console.log('[removeItemFromLesson] ok', { lessonId, folder, removed: list.length - filtered.length })
   return { data: data as unknown as Record<string, unknown>, error: null }
 }
 
